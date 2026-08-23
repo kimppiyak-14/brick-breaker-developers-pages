@@ -1,0 +1,1511 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>벽돌 깨기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">
+<link href=\"https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700;900&family=Space+Mono:wght@400;700&display=swap\" rel=\"stylesheet\">
+<style>
+  :root {
+    --clay: #b8472e;
+    --clay-deep: #7a2e1c;
+    --ground: #efe6d3;
+    --surface: #fbf6ea;
+    --ink: #241f1b;
+    --ink-soft: #6b5f52;
+    --steel: #4f6d69;
+    --spark: #d98a1f;
+    --good: #4f7d4a;
+    --line: rgba(36, 31, 27, 0.14);
+    --shadow: rgba(36, 31, 27, 0.22);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --clay: #e2683f;
+      --clay-deep: #ffa477;
+      --ground: #1c1713;
+      --surface: #26201b;
+      --ink: #f3ead9;
+      --ink-soft: #b8a996;
+      --steel: #82a7a1;
+      --spark: #f2b657;
+      --good: #7fbf75;
+      --line: rgba(243, 234, 217, 0.14);
+      --shadow: rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --clay: #e2683f;
+    --clay-deep: #ffa477;
+    --ground: #1c1713;
+    --surface: #26201b;
+    --ink: #f3ead9;
+    --ink-soft: #b8a996;
+    --steel: #82a7a1;
+    --spark: #f2b657;
+    --good: #7fbf75;
+    --line: rgba(243, 234, 217, 0.14);
+    --shadow: rgba(0, 0, 0, 0.5);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--ground);
+    background-image:
+      repeating-linear-gradient(0deg, var(--line) 0 1px, transparent 1px 34px),
+      repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 68px);
+    color: var(--ink);
+    font-family: "Roboto Slab", Georgia, "Noto Serif KR", serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 16px;
+  }
+
+  .page {
+    width: 100%;
+    max-width: 760px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .masthead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .masthead h1 {
+    margin: 0;
+    font-family: "Roboto Slab", serif;
+    font-weight: 900;
+    font-size: clamp(28px, 5vw, 40px);
+    letter-spacing: 0.01em;
+    color: var(--clay-deep);
+    text-wrap: balance;
+  }
+
+  .masthead p {
+    margin: 4px 0 0;
+    font-family: "Space Mono", monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.02em;
+    color: var(--ink-soft);
+  }
+
+  .icon-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .cabinet {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 18px 40px -20px var(--shadow), 0 2px 0 var(--line) inset;
+  }
+
+  .hud {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 2px 6px 14px;
+    font-family: "Space Mono", monospace;
+  }
+
+  .hud-group {
+    display: flex;
+    gap: 18px;
+  }
+
+  .hud-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .hud-stat .label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .hud-stat .value {
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  .hud-stat .value.accent { color: var(--clay); }
+
+  .lives {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    height: 18px;
+  }
+
+  .life-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--clay);
+    box-shadow: inset 0 -2px 0 var(--clay-deep);
+  }
+
+  .life-dot.lost {
+    background: transparent;
+    border: 1.5px dashed var(--line);
+    box-shadow: none;
+  }
+
+  .stage {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    line-height: 0;
+    touch-action: none;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--ground);
+    cursor: none;
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* flex-start + auto margins on the first/last child instead of
+       justify-content:center — centering via justify-content clips the
+       start of the content with no way to scroll back to it once the
+       overlay is taller than .stage (a well-known flexbox overflow bug).
+       Auto margins center the same way when everything fits, but collapse
+       to 0 instead of clipping once it doesn't, so overflow-y can always
+       reach the very top. */
+    justify-content: flex-start;
+    gap: 12px;
+    text-align: center;
+    padding: 20px;
+    background: color-mix(in srgb, var(--ground) 90%, transparent);
+    backdrop-filter: blur(2px);
+    overflow-y: auto;
+  }
+
+  .overlay[hidden] { display: none; }
+
+  .overlay > *:first-child { margin-top: auto; }
+  .overlay > *:last-child { margin-bottom: auto; }
+
+  .overlay h2 {
+    margin: 0;
+    font-size: clamp(22px, 4.5vw, 30px);
+    font-weight: 900;
+    color: var(--clay-deep);
+  }
+
+  .overlay p {
+    margin: 0;
+    max-width: 42ch;
+    color: var(--ink-soft);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .overlay .stat-line {
+    font-family: "Space Mono", monospace;
+    font-size: 14px;
+    color: var(--ink);
+  }
+
+  button.btn {
+    font-family: "Roboto Slab", serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.02em;
+    color: var(--surface);
+    background: var(--clay);
+    border: none;
+    border-radius: 9px;
+    padding: 11px 26px;
+    cursor: pointer;
+    box-shadow: 0 3px 0 var(--clay-deep);
+    transition: transform 0.08s ease;
+  }
+
+  button.btn.small {
+    padding: 8px 18px;
+    font-size: 13px;
+    box-shadow: 0 2px 0 var(--clay-deep);
+  }
+
+  button.btn:hover { filter: brightness(1.05); }
+  button.btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--clay-deep); }
+  button.btn:disabled { opacity: 0.55; cursor: default; transform: none; }
+
+  button.btn:focus-visible,
+  .icon-btn:focus-visible,
+  .diff-btn:focus-visible,
+  input:focus-visible {
+    outline: 2px solid var(--steel);
+    outline-offset: 2px;
+  }
+
+  .icon-btn {
+    font-family: "Space Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+
+  .icon-btn:hover { color: var(--ink); border-color: var(--ink-soft); }
+
+  .diff-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .diff-btn {
+    font-family: "Space Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    line-height: 1.3;
+  }
+
+  .diff-btn span {
+    font-size: 10px;
+    color: var(--ink-soft);
+  }
+
+  .diff-btn:hover { border-color: var(--ink-soft); }
+
+  .diff-btn.selected {
+    border-color: var(--clay);
+    color: var(--clay-deep);
+    background: color-mix(in srgb, var(--clay) 14%, transparent);
+  }
+
+  .diff-btn.selected span { color: var(--clay-deep); }
+
+  .register-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .submit-row,
+  .board-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+  }
+
+  input[type="text"] {
+    font-family: "Space Mono", monospace;
+    font-size: 13px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: var(--surface);
+    color: var(--ink);
+    width: 120px;
+  }
+
+  .board-note {
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    max-width: 40ch;
+    line-height: 1.5;
+  }
+
+  .help-list {
+    text-align: left;
+    max-width: 46ch;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink);
+    margin: 0;
+    padding-left: 1.2em;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .board-scroll {
+    max-height: 250px;
+    overflow-y: auto;
+    width: 100%;
+    max-width: 460px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+
+  .board-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: "Space Mono", monospace;
+    font-size: 12.5px;
+  }
+
+  .board-table th,
+  .board-table td {
+    padding: 7px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .board-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    color: var(--ink-soft);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 10px;
+  }
+
+  .board-table td.rank {
+    font-weight: 700;
+    color: var(--clay-deep);
+    width: 2.2em;
+  }
+
+  .toast {
+    position: fixed;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: var(--surface);
+    font-family: "Space Mono", monospace;
+    font-size: 13px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px -8px var(--shadow);
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+  }
+
+  .toast.show { opacity: 1; }
+
+  footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-family: "Space Mono", monospace;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    padding: 2px 6px;
+  }
+
+  footer kbd {
+    font-family: "Space Mono", monospace;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: var(--ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    button.btn { transition: none; }
+    .toast { transition: none; }
+  }
+
+  @media (max-width: 480px) {
+    body { padding: 14px 8px; }
+    .cabinet { padding: 10px; border-radius: 14px; }
+    .masthead h1 { font-size: clamp(20px, 7vw, 26px); }
+    .masthead p { font-size: 11px; }
+    .overlay { padding: 14px 10px; gap: 8px; }
+    .overlay h2 { font-size: clamp(17px, 5.5vw, 21px); }
+    .overlay p { font-size: 12.5px; max-width: 34ch; }
+    .diff-group { gap: 6px; }
+    .diff-btn { padding: 6px 10px; font-size: 11px; }
+    .diff-btn span { font-size: 9px; }
+    .icon-row { gap: 6px; }
+    .icon-btn { font-size: 11px; padding: 5px 10px; }
+    input[type="text"] { width: 96px; font-size: 12px; padding: 7px 8px; }
+    .board-note { font-size: 11px; max-width: 32ch; }
+    .help-list { font-size: 12px; gap: 4px; max-width: 34ch; }
+    .board-scroll { max-height: 200px; }
+  }
+
+  @media (max-height: 640px) {
+    .overlay { padding-top: 12px; padding-bottom: 12px; gap: 6px; }
+    .overlay h2 { font-size: 17px; }
+    .overlay p { font-size: 12px; }
+    .help-list { gap: 3px; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script id="init-data">window.__BOARD_DATA__ = {};</script>
+<script>
+(function () {
+  "use strict";
+
+  var LOGIC_SCRIPT_SOURCE = (document.currentScript && document.currentScript.textContent) || "";
+
+  // ===================================================================
+  // 온라인 명예의 전당 설정 (jsonbin.io) — 이 파일을 claude.ai가 아닌
+  // 다른 도메인에 올려서 쓸 때는, 아래 두 값을 채워야 "다른 기기에서도
+  // 보이는" 진짜 온라인 순위표가 동작합니다. 비워두면 이 브라우저에만
+  // 저장되는 로컬 모드로 자동 전환돼요.
+  // 값 발급 방법: 보내드린 jsonbin-setup.html 파일을 열어 안내를 따르세요.
+  var JSONBIN_ID = "6a8ae669da38895dfe06c1ac";
+  var JSONBIN_KEY = "$2a$10$CGlufqwCMT.eIjJNnm1/OuttOTtfBGloHFX5zm5pMy0U.wPL/UeDW";
+  // ===================================================================
+
+  // ---------- static body template (single source of truth) ----------
+  function renderBodyHtml() {
+    return '<div class="page">' +
+      '<div class="masthead">' +
+        '<div>' +
+          '<h1>벽돌 깨기</h1>' +
+          '<p>벽돌을 부수세요.</p>' +
+        '</div>' +
+        '<div class="icon-row">' +
+          '<button class="icon-btn" id="btnBoard" type="button">🏆 명예의 전당</button>' +
+          '<button class="icon-btn" id="btnHelp" type="button">❓ 게임 방법</button>' +
+          '<button class="icon-btn" id="soundToggle" type="button" aria-pressed="true">소리 켜짐</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="cabinet">' +
+        '<div class="hud">' +
+          '<div class="hud-group">' +
+            '<div class="hud-stat"><span class="label">점수</span><span class="value accent" id="scoreValue">0</span></div>' +
+            '<div class="hud-stat"><span class="label">최고 등록 점수</span><span class="value" id="bestValue">0</span></div>' +
+            '<div class="hud-stat"><span class="label">레벨</span><span class="value" id="levelValue">1</span></div>' +
+          '</div>' +
+          '<div class="hud-stat" style="align-items:flex-end;"><span class="label">생명</span><div class="lives" id="livesRow"></div></div>' +
+        '</div>' +
+        '<div class="stage">' +
+          '<canvas id="game" width="760" height="520" aria-label="벽돌 깨기 게임 화면"></canvas>' +
+
+          '<div class="overlay" id="overlayStart">' +
+            '<h2>시작할 준비 되셨나요?</h2>' +
+            '<p>마우스로 패들을 움직여 공을 튕겨내고, 벽돌을 모두 부수세요. 어려운 난이도일수록 등록 점수 배율이 높아져요.</p>' +
+            '<div class="diff-group" id="diffGroupStart" role="group" aria-label="난이도 선택">' +
+              '<button class="diff-btn" data-lives="3" type="button">쉬움<span>목숨 3 · 배율 0.7배</span></button>' +
+              '<button class="diff-btn selected" data-lives="2" type="button">보통<span>목숨 2 · 배율 1.0배</span></button>' +
+              '<button class="diff-btn" data-lives="1" type="button">어려움<span>목숨 1 · 배율 1.5배</span></button>' +
+            '</div>' +
+            '<div class="submit-row">' +
+              '<input type="text" id="nameInputStart" maxlength="10" placeholder="닉네임">' +
+              '<input type="text" id="codeInputStart" maxlength="8" placeholder="코드(선택)">' +
+            '</div>' +
+            '<p class="board-note">친구와 같은 코드를 입력하면 그 코드를 쓰는 사람들끼리만 순위를 겨뤄요. 등록은 게임이 끝난 뒤 화면에서 할 수 있어요.</p>' +
+            '<button class="btn" id="btnStart" type="button">시작하기</button>' +
+            '<div class="icon-row">' +
+              '<button class="icon-btn" id="btnBoardFromStart" type="button">🏆 명예의 전당 보기</button>' +
+              '<button class="icon-btn" id="btnHelpFromStart" type="button">❓ 게임 방법 보기</button>' +
+            '</div>' +
+          '</div>' +
+
+          '<div class="overlay" id="overlayPause" hidden>' +
+            '<h2>일시정지</h2>' +
+            '<p>준비되면 계속 진행하세요.</p>' +
+            '<button class="btn" id="btnResume" type="button">계속하기</button>' +
+          '</div>' +
+
+          '<div class="overlay" id="overlayClear" hidden>' +
+            '<h2>레벨 클리어!</h2>' +
+            '<p class="stat-line" id="clearStat"></p>' +
+            '<button class="btn" id="btnNext" type="button">다음 레벨</button>' +
+          '</div>' +
+
+          '<div class="overlay" id="overlayOver" hidden>' +
+            '<h2>게임 오버</h2>' +
+            '<p class="stat-line" id="overStat"></p>' +
+            '<div class="diff-group" id="diffGroupOver" role="group" aria-label="난이도 선택">' +
+              '<button class="diff-btn" data-lives="3" type="button">쉬움<span>목숨 3 · 배율 0.7배</span></button>' +
+              '<button class="diff-btn" data-lives="2" type="button">보통<span>목숨 2 · 배율 1.0배</span></button>' +
+              '<button class="diff-btn" data-lives="1" type="button">어려움<span>목숨 1 · 배율 1.5배</span></button>' +
+            '</div>' +
+            '<div class="register-box">' +
+              '<p class="board-note" id="registerNote">이름과 코드를 입력하고 명예의 전당에 등록하세요. 코드를 비우면 전체 명예의 전당에, 코드를 입력하면 같은 코드를 쓰는 사람들끼리만 순위를 겨뤄요.</p>' +
+              '<div class="submit-row">' +
+                '<input type="text" id="nameInput" maxlength="10" placeholder="이름">' +
+                '<input type="text" id="codeInput" maxlength="8" placeholder="코드(선택)">' +
+                '<button class="btn small" id="btnSubmitScore" type="button">등록하기</button>' +
+              '</div>' +
+            '</div>' +
+            '<button class="btn" id="btnRestart" type="button">다시 시작</button>' +
+          '</div>' +
+
+          '<div class="overlay" id="overlayBoard" hidden>' +
+            '<h2 id="boardTitle">명예의 전당</h2>' +
+            '<div class="board-controls">' +
+              '<input type="text" id="boardCodeInput" maxlength="8" placeholder="코드로 조회(비우면 전체)">' +
+              '<button class="icon-btn" id="btnBoardLookup" type="button">조회</button>' +
+            '</div>' +
+            '<div class="board-scroll"><table class="board-table"><thead><tr><th>순위</th><th>이름</th><th>등록 점수</th><th>난이도</th></tr></thead><tbody id="boardTbody"></tbody></table></div>' +
+            '<p class="board-note" id="boardModeNote"></p>' +
+            '<button class="btn" id="btnBoardClose" type="button">닫기</button>' +
+          '</div>' +
+
+          '<div class="overlay" id="overlayHelp" hidden>' +
+            '<h2>게임 방법</h2>' +
+            '<ul class="help-list">' +
+              '<li>마우스를 좌우로 움직여 패들을 조작해요.</li>' +
+              '<li>패들 위에 붙은 공을 클릭하거나 <kbd>Space</kbd>로 발사해요.</li>' +
+              '<li>모든 벽돌을 부수면 다음 레벨로 넘어가요. 가운데 세로줄이 있는 벽돌은 두 번 쳐야 깨지는 철근 벽돌이에요.</li>' +
+              '<li>공을 놓치면 목숨이 하나 줄고 점수도 30점 깎여요. 목숨이 다 떨어지면 게임 오버예요.</li>' +
+              '<li>공은 부딪힐 때마다 조금씩 빨라지다가, 일정 속도에 도달하면 더는 빨라지지 않아요.</li>' +
+              '<li>난이도에 따라 목숨 수와 등록 점수 배율이 달라져요: 쉬움(목숨 3 · 0.7배) · 보통(목숨 2 · 1.0배) · 어려움(목숨 1 · 1.5배).</li>' +
+              '<li><kbd>P</kbd> 키로 언제든 일시정지할 수 있어요.</li>' +
+              '<li>게임이 끝나면 닉네임과 코드를 입력해 명예의 전당에 등록하세요. 코드를 비우면 전체 명예의 전당에, 코드를 입력하면 같은 코드를 쓰는 친구들끼리만 순위를 겨뤄요.</li>' +
+            '</ul>' +
+            '<p class="board-note">친구가 직접 점수를 등록하려면 이 아티팩트의 편집 권한이 필요해요. 편집 권한이 없거나 이 페이지가 앱 밖에서 열리면 그 브라우저에만 기록이 저장돼요.</p>' +
+            '<button class="btn" id="btnHelpClose" type="button">닫기</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<footer>' +
+        '<span>마우스로 이동 · 클릭 또는 <kbd>Space</kbd> 발사 · <kbd>P</kbd> 일시정지</span>' +
+        '<span>철근이 박힌 벽돌은 두 번 쳐야 깨집니다.</span>' +
+      '</footer>' +
+    '</div>';
+  }
+
+  // ---------- mount ----------
+  var appEl = document.getElementById("app");
+  appEl.innerHTML = renderBodyHtml();
+
+  var canvas = document.getElementById("game");
+  var ctx = canvas.getContext("2d");
+  var W = canvas.width, H = canvas.height;
+
+  var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------- theme-aware palette ----------
+  function isDark() {
+    var root = document.documentElement;
+    if (root.getAttribute("data-theme") === "dark") return true;
+    if (root.getAttribute("data-theme") === "light") return false;
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+
+  var PALETTES = {
+    light: {
+      ground: "#efe6d3",
+      mortar: "#dcd0b4",
+      ink: "#241f1b",
+      steel: "#4f6d69",
+      steelDeep: "#33504c",
+      spark: "#d98a1f",
+      rows: ["#8f3320", "#a5401f", "#b8472e", "#c15a3a", "#c97a52", "#d6a06f"],
+      rowsDeep: ["#6a2416", "#7a2e17", "#8a3521", "#93412a", "#9c5b3d", "#a97c56"]
+    },
+    dark: {
+      ground: "#1c1713",
+      mortar: "#332a22",
+      ink: "#f3ead9",
+      steel: "#82a7a1",
+      steelDeep: "#5c8983",
+      spark: "#f2b657",
+      rows: ["#b64a2c", "#c65535", "#e2683f", "#e77c50", "#ef9868", "#f4b487"],
+      rowsDeep: ["#8a3520", "#973e27", "#b4502f", "#b95f39", "#c07750", "#c99367"]
+    }
+  };
+
+  function pal() { return isDark() ? PALETTES.dark : PALETTES.light; }
+
+  // ---------- layout constants ----------
+  var ROWS = 6, COLS = 10;
+  var FIELD_TOP = 64, FIELD_SIDE = 18, FIELD_GAP = 6;
+  var brickW = (W - FIELD_SIDE * 2 - FIELD_GAP * (COLS - 1)) / COLS;
+  var brickH = 22;
+
+  var paddle = { w: 108, h: 14, x: W / 2 - 54, y: H - 34 };
+  var BALL_R = 8;
+  var ball = { x: 0, y: 0, vx: 0, vy: 0, stuck: true, speed: 0, maxSpeed: 0 };
+
+  var bricks = [];
+  var particles = [];
+
+  // ---------- difficulty ----------
+  // 목숨: 쉬움 3 · 보통 2 · 어려움 1
+  var DIFFICULTY_SPEED_FACTOR = { 3: 0.82, 2: 1.0, 1: 1.18 };
+  // 등록 점수 배율: 쉬움이 가장 낮고, 어려움이 가장 높음
+  var DIFFICULTY_SCORE_MULTIPLIER = { 3: 0.7, 2: 1.0, 1: 1.5 };
+  var LIFE_LOST_PENALTY = 30;
+  var BOARD_MAX = 20;
+
+  // ---------- jsonbin.io (online board for self-hosted deployments) ----------
+  var JSONBIN_BASE = "https://api.jsonbin.io/v3/b/";
+
+  function jsonbinConfigured() {
+    return !!(JSONBIN_ID && JSONBIN_KEY);
+  }
+
+  async function jsonbinRead() {
+    var res = await fetch(JSONBIN_BASE + JSONBIN_ID + "/latest", {
+      headers: { "X-Master-Key": JSONBIN_KEY }
+    });
+    if (!res.ok) throw new Error("jsonbin read failed: " + res.status);
+    var json = await res.json();
+    return (json && json.record && typeof json.record === "object") ? json.record : {};
+  }
+
+  async function jsonbinWrite(data) {
+    var res = await fetch(JSONBIN_BASE + JSONBIN_ID, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error("jsonbin write failed: " + res.status);
+    return true;
+  }
+
+  function diffLabel(lv) {
+    if (lv === 3) return "쉬움";
+    if (lv === 1) return "어려움";
+    return "보통";
+  }
+
+  var score = 0, level = 1, lives = 2;
+  var difficultyLives = 2;
+  try {
+    var savedDiff = parseInt(localStorage.getItem("bbDifficulty") || "2", 10);
+    if (savedDiff === 1 || savedDiff === 2 || savedDiff === 3) difficultyLives = savedDiff;
+  } catch (e) { /* ignore */ }
+
+  var best = 0;
+  try { best = parseInt(localStorage.getItem("brickBreakerBest") || "0", 10) || 0; } catch (e) { best = 0; }
+
+  var lastFinalScore = 0;
+  var state = "start"; // start | playing | paused | clear | over | board | help
+  var boardPrevState = "start";
+
+  // ---------- shared / local leaderboard ----------
+  var boardData = (window.__BOARD_DATA__ && typeof window.__BOARD_DATA__ === "object") ? window.__BOARD_DATA__ : {};
+  var artifactCap = null;
+  var boardMode = "local"; // becomes "shared" once the capability resolves
+
+  // ---------- DOM refs ----------
+  var scoreEl = document.getElementById("scoreValue");
+  var bestEl = document.getElementById("bestValue");
+  var levelEl = document.getElementById("levelValue");
+  var livesRow = document.getElementById("livesRow");
+  var overlayStart = document.getElementById("overlayStart");
+  var overlayPause = document.getElementById("overlayPause");
+  var overlayClear = document.getElementById("overlayClear");
+  var overlayOver = document.getElementById("overlayOver");
+  var overlayBoard = document.getElementById("overlayBoard");
+  var overlayHelp = document.getElementById("overlayHelp");
+  var clearStat = document.getElementById("clearStat");
+  var overStat = document.getElementById("overStat");
+  var soundToggle = document.getElementById("soundToggle");
+  var diffGroupStart = document.getElementById("diffGroupStart");
+  var diffGroupOver = document.getElementById("diffGroupOver");
+  var nameInputStart = document.getElementById("nameInputStart");
+  var codeInputStart = document.getElementById("codeInputStart");
+  var nameInput = document.getElementById("nameInput");
+  var codeInput = document.getElementById("codeInput");
+  var btnSubmitScore = document.getElementById("btnSubmitScore");
+  var registerNote = document.getElementById("registerNote");
+  var btnBoard = document.getElementById("btnBoard");
+  var btnBoardFromStart = document.getElementById("btnBoardFromStart");
+  var btnBoardClose = document.getElementById("btnBoardClose");
+  var btnBoardLookup = document.getElementById("btnBoardLookup");
+  var boardCodeInput = document.getElementById("boardCodeInput");
+  var boardTitle = document.getElementById("boardTitle");
+  var boardTbody = document.getElementById("boardTbody");
+  var boardModeNote = document.getElementById("boardModeNote");
+  var btnHelp = document.getElementById("btnHelp");
+  var btnHelpFromStart = document.getElementById("btnHelpFromStart");
+  var btnHelpClose = document.getElementById("btnHelpClose");
+
+  bestEl.textContent = best;
+
+  // 닉네임/코드는 시작 화면과 게임오버 화면 두 곳 모두에서 입력할 수 있고, 서로 값을 동기화합니다.
+  function syncNameInputs(name) {
+    nameInputStart.value = name;
+    nameInput.value = name;
+  }
+  function syncCodeInputs(code) {
+    codeInputStart.value = code;
+    codeInput.value = code;
+  }
+  function getCurrentCode() {
+    return sanitizeCode(codeInputStart.value || codeInput.value || "");
+  }
+
+  try { syncNameInputs(localStorage.getItem("bbPlayerName") || ""); } catch (e) { /* ignore */ }
+  try { syncCodeInputs(localStorage.getItem("bbLastCode") || ""); } catch (e) { /* ignore */ }
+
+  [nameInputStart, nameInput].forEach(function (el) {
+    el.addEventListener("input", function () {
+      syncNameInputs(el.value);
+      try { localStorage.setItem("bbPlayerName", el.value); } catch (e) { /* ignore */ }
+    });
+  });
+  [codeInputStart, codeInput].forEach(function (el) {
+    el.addEventListener("input", function () {
+      syncCodeInputs(el.value);
+      try { localStorage.setItem("bbLastCode", el.value); } catch (e) { /* ignore */ }
+    });
+  });
+
+  // ---------- sound (tiny WebAudio blips, optional) ----------
+  var soundOn = true;
+  var actx = null;
+  function beep(freq, dur, type) {
+    if (!soundOn) return;
+    try {
+      if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+      var o = actx.createOscillator(), g = actx.createGain();
+      o.type = type || "square";
+      o.frequency.value = freq;
+      g.gain.value = 0.05;
+      o.connect(g); g.connect(actx.destination);
+      o.start();
+      g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
+      o.stop(actx.currentTime + dur);
+    } catch (e) { /* audio unavailable, ignore */ }
+  }
+  soundToggle.addEventListener("click", function () {
+    soundOn = !soundOn;
+    soundToggle.textContent = soundOn ? "소리 켜짐" : "소리 꺼짐";
+    soundToggle.setAttribute("aria-pressed", String(soundOn));
+  });
+
+  // ---------- toast ----------
+  function showToast(msg) {
+    var t = document.createElement("div");
+    t.className = "toast";
+    t.textContent = msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(function () { t.classList.add("show"); });
+    setTimeout(function () {
+      t.classList.remove("show");
+      setTimeout(function () { t.remove(); }, 300);
+    }, 2600);
+  }
+
+  // ---------- difficulty selection ----------
+  function syncDiffGroup(group) {
+    var btns = group.querySelectorAll(".diff-btn");
+    for (var i = 0; i < btns.length; i++) {
+      var lv = parseInt(btns[i].getAttribute("data-lives"), 10);
+      btns[i].classList.toggle("selected", lv === difficultyLives);
+    }
+  }
+
+  function setupDiffGroup(group) {
+    group.addEventListener("click", function (e) {
+      var btn = e.target.closest(".diff-btn");
+      if (!btn) return;
+      difficultyLives = parseInt(btn.getAttribute("data-lives"), 10);
+      try { localStorage.setItem("bbDifficulty", String(difficultyLives)); } catch (err) { /* ignore */ }
+      syncDiffGroup(diffGroupStart);
+      syncDiffGroup(diffGroupOver);
+    });
+  }
+
+  setupDiffGroup(diffGroupStart);
+  setupDiffGroup(diffGroupOver);
+  syncDiffGroup(diffGroupStart);
+  syncDiffGroup(diffGroupOver);
+
+  // ---------- brick setup ----------
+  function buildBricks() {
+    bricks = [];
+    var reinforcedChance = Math.min(0.55, 0.22 + level * 0.06);
+    for (var r = 0; r < ROWS; r++) {
+      for (var c = 0; c < COLS; c++) {
+        var reinforced = (r === 0 || r === 1) && Math.random() < reinforcedChance;
+        bricks.push({
+          x: FIELD_SIDE + c * (brickW + FIELD_GAP),
+          y: FIELD_TOP + r * (brickH + FIELD_GAP),
+          w: brickW, h: brickH,
+          row: r,
+          hp: reinforced ? 2 : 1,
+          maxHp: reinforced ? 2 : 1,
+          alive: true
+        });
+      }
+    }
+  }
+
+  // 난이도별 속도 배율 — 어려움(목숨 1)일수록 공이 조금 더 빠르게 시작·가속됩니다.
+  function speedParamsForLevel() {
+    var factor = DIFFICULTY_SPEED_FACTOR[difficultyLives] || 1.0;
+    var base = (3.1 + (level - 1) * 0.15) * factor;
+    var max = (6.2 + (level - 1) * 0.3) * factor;
+    return { base: base, max: Math.min(max, 11) };
+  }
+
+  function resetBallOnPaddle() {
+    ball.stuck = true;
+    ball.x = paddle.x + paddle.w / 2;
+    ball.y = paddle.y - BALL_R - 1;
+    var params = speedParamsForLevel();
+    ball.vx = params.base * 0.42;
+    ball.vy = -params.base;
+    ball.speed = params.base;
+    ball.maxSpeed = params.max;
+  }
+
+  function resetPaddle() {
+    paddle.w = Math.max(72, 108 - (level - 1) * 4);
+    paddle.x = W / 2 - paddle.w / 2;
+  }
+
+  function newGame() {
+    score = 0; level = 1; lives = difficultyLives;
+    resetPaddle();
+    buildBricks();
+    resetBallOnPaddle();
+    updateHud();
+  }
+
+  function nextLevel() {
+    level += 1;
+    resetPaddle();
+    buildBricks();
+    resetBallOnPaddle();
+    updateHud();
+  }
+
+  // ---------- HUD ----------
+  function updateHud() {
+    scoreEl.textContent = score;
+    levelEl.textContent = level;
+    bestEl.textContent = best;
+    livesRow.innerHTML = "";
+    for (var i = 0; i < difficultyLives; i++) {
+      var dot = document.createElement("span");
+      dot.className = "life-dot" + (i < lives ? "" : " lost");
+      livesRow.appendChild(dot);
+    }
+  }
+
+  // ---------- particles (brick debris + paddle sparks) ----------
+  function spawnDebris(bx, by, bw, bh, color) {
+    if (reducedMotion) return;
+    var count = 7;
+    for (var i = 0; i < count; i++) {
+      particles.push({
+        x: bx + bw / 2, y: by + bh / 2,
+        vx: (Math.random() - 0.5) * 4.2,
+        vy: -Math.random() * 3 - 1,
+        g: 0.18,
+        size: 2.5 + Math.random() * 2.5,
+        life: 1,
+        decay: 0.02 + Math.random() * 0.015,
+        color: color,
+        rot: Math.random() * Math.PI,
+        vrot: (Math.random() - 0.5) * 0.3
+      });
+    }
+  }
+
+  function spawnSpark(x, y, color) {
+    if (reducedMotion) return;
+    for (var i = 0; i < 4; i++) {
+      particles.push({
+        x: x, y: y,
+        vx: (Math.random() - 0.5) * 2.4,
+        vy: -Math.random() * 1.6 - 0.4,
+        g: 0.08,
+        size: 1.6 + Math.random() * 1.4,
+        life: 1,
+        decay: 0.05,
+        color: color,
+        rot: 0, vrot: 0
+      });
+    }
+  }
+
+  function updateParticles() {
+    for (var i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+      p.x += p.vx; p.y += p.vy; p.vy += p.g;
+      p.rot += p.vrot;
+      p.life -= p.decay;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function drawParticles() {
+    for (var i = 0; i < particles.length; i++) {
+      var p = particles[i];
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+      ctx.restore();
+    }
+  }
+
+  // ---------- drawing ----------
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function draw() {
+    var P = pal();
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = P.ground;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = P.mortar;
+    for (var y = 0; y < H; y += 30) ctx.fillRect(0, y, W, 1);
+
+    for (var i = 0; i < bricks.length; i++) {
+      var b = bricks[i];
+      if (!b.alive) continue;
+      var color = P.rows[b.row % P.rows.length];
+      var deep = P.rowsDeep[b.row % P.rowsDeep.length];
+      ctx.fillStyle = deep;
+      ctx.fillRect(b.x, b.y + b.h - 3, b.w, 3);
+      ctx.fillStyle = color;
+      ctx.fillRect(b.x, b.y, b.w, b.h - 3);
+      if (b.hp < b.maxHp) {
+        ctx.fillStyle = "rgba(0,0,0,0.18)";
+        ctx.fillRect(b.x, b.y, b.w, b.h - 3);
+      }
+      if (b.maxHp > 1) {
+        ctx.fillStyle = P.steel;
+        ctx.fillRect(b.x + b.w / 2 - 1, b.y + 3, 2, b.h - 9);
+      }
+    }
+
+    // paddle
+    ctx.fillStyle = P.steel;
+    roundRect(paddle.x, paddle.y, paddle.w, paddle.h, 5);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.22)";
+    roundRect(paddle.x + 4, paddle.y + 2, paddle.w - 8, 3, 2);
+    ctx.fill();
+
+    // ball
+    ctx.beginPath();
+    ctx.fillStyle = P.ink;
+    ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.fillStyle = P.spark;
+    ctx.globalAlpha = 0.9;
+    ctx.arc(ball.x - 2, ball.y - 2, 2.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    drawParticles();
+  }
+
+  // ---------- physics ----------
+  function clampPaddle() {
+    if (paddle.x < FIELD_SIDE) paddle.x = FIELD_SIDE;
+    if (paddle.x + paddle.w > W - FIELD_SIDE) paddle.x = W - FIELD_SIDE - paddle.w;
+  }
+
+  var SPEED_STEP = 1.012;
+
+  function bumpSpeed() {
+    // 부딪힐 때마다 조금씩 빨라지지만, 레벨·난이도별 상한(ball.maxSpeed)에 도달하면 더 빨라지지 않고 고정됩니다.
+    ball.speed = Math.min(ball.speed * SPEED_STEP, ball.maxSpeed);
+  }
+
+  function rescaleToSpeed() {
+    var mag = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy) || ball.speed;
+    var scale = ball.speed / mag;
+    ball.vx *= scale;
+    ball.vy *= scale;
+  }
+
+  function update() {
+    if (state !== "playing") return;
+
+    if (ball.stuck) {
+      ball.x = paddle.x + paddle.w / 2;
+      ball.y = paddle.y - BALL_R - 1;
+    } else {
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+
+      if (ball.x - BALL_R < FIELD_SIDE) { ball.x = FIELD_SIDE + BALL_R; ball.vx *= -1; bumpSpeed(); rescaleToSpeed(); }
+      if (ball.x + BALL_R > W - FIELD_SIDE) { ball.x = W - FIELD_SIDE - BALL_R; ball.vx *= -1; bumpSpeed(); rescaleToSpeed(); }
+      if (ball.y - BALL_R < 24) { ball.y = 24 + BALL_R; ball.vy *= -1; bumpSpeed(); rescaleToSpeed(); }
+
+      if (ball.vy > 0 &&
+          ball.y + BALL_R >= paddle.y &&
+          ball.y + BALL_R <= paddle.y + paddle.h + 8 &&
+          ball.x >= paddle.x - BALL_R &&
+          ball.x <= paddle.x + paddle.w + BALL_R) {
+        var hit = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
+        var angle = hit * (Math.PI / 3);
+        bumpSpeed();
+        ball.vx = ball.speed * Math.sin(angle);
+        ball.vy = -Math.abs(ball.speed * Math.cos(angle));
+        ball.y = paddle.y - BALL_R - 1;
+        spawnSpark(ball.x, ball.y, pal().spark);
+        beep(220, 0.05, "triangle");
+      }
+
+      for (var i = 0; i < bricks.length; i++) {
+        var b = bricks[i];
+        if (!b.alive) continue;
+        if (ball.x + BALL_R > b.x && ball.x - BALL_R < b.x + b.w &&
+            ball.y + BALL_R > b.y && ball.y - BALL_R < b.y + b.h) {
+          var overlapLeft = (ball.x + BALL_R) - b.x;
+          var overlapRight = (b.x + b.w) - (ball.x - BALL_R);
+          var overlapTop = (ball.y + BALL_R) - b.y;
+          var overlapBottom = (b.y + b.h) - (ball.y - BALL_R);
+          var minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+          if (minOverlap === overlapLeft || minOverlap === overlapRight) ball.vx *= -1;
+          else ball.vy *= -1;
+          bumpSpeed();
+          rescaleToSpeed();
+
+          b.hp -= 1;
+          if (b.hp <= 0) {
+            b.alive = false;
+            score += (ROWS - b.row) * 10;
+            spawnDebris(b.x, b.y, b.w, b.h, pal().rows[b.row % pal().rows.length]);
+            beep(520 - b.row * 30, 0.07, "square");
+          } else {
+            beep(160, 0.05, "square");
+          }
+          updateHud();
+          break;
+        }
+      }
+
+      if (ball.y - BALL_R > H) {
+        lives -= 1;
+        score = Math.max(0, score - LIFE_LOST_PENALTY);
+        updateHud();
+        if (lives <= 0) {
+          endGame();
+        } else {
+          resetBallOnPaddle();
+        }
+      }
+
+      var remaining = 0;
+      for (var j = 0; j < bricks.length; j++) if (bricks[j].alive) remaining++;
+      if (remaining === 0) clearLevel();
+    }
+
+    updateParticles();
+  }
+
+  function launch() {
+    if (state === "playing" && ball.stuck) {
+      ball.stuck = false;
+      beep(300, 0.08, "sine");
+    }
+  }
+
+  function endGame() {
+    state = "over";
+    var mult = DIFFICULTY_SCORE_MULTIPLIER[difficultyLives] || 1;
+    lastFinalScore = Math.round(score * mult);
+    if (lastFinalScore > best) {
+      best = lastFinalScore;
+      try { localStorage.setItem("brickBreakerBest", String(best)); } catch (e) { /* ignore */ }
+    }
+    updateHud();
+    overStat.textContent = "기본 점수 " + score + " · " + diffLabel(difficultyLives) + " 배율 적용 등록 점수 " + lastFinalScore + " · 도달 레벨 " + level;
+    registerNote.textContent = "이름과 코드를 입력하고 명예의 전당에 등록하세요. 코드를 비우면 전체 명예의 전당에, 코드를 입력하면 같은 코드를 쓰는 사람들끼리만 순위를 겨뤄요.";
+    btnSubmitScore.disabled = false;
+    btnSubmitScore.textContent = "등록하기";
+    overlayOver.hidden = false;
+    beep(110, 0.3, "sawtooth");
+  }
+
+  function clearLevel() {
+    state = "clear";
+    clearStat.textContent = "레벨 " + level + " 완료 · 현재 점수 " + score;
+    overlayClear.hidden = false;
+    beep(660, 0.15, "sine");
+  }
+
+  // ---------- leaderboard ----------
+  function sanitizeCode(raw) {
+    return (raw || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function boardTbodyHtml(entries) {
+    if (!entries || !entries.length) {
+      return '<tr><td colspan="4" style="text-align:center;color:var(--ink-soft);padding:16px 0;">아직 등록된 기록이 없어요.</td></tr>';
+    }
+    var rows = "";
+    for (var i = 0; i < entries.length; i++) {
+      var e = entries[i];
+      rows += "<tr><td class=\"rank\">" + (i + 1) + "</td><td>" + escapeHtml(e.name) + "</td><td>" + e.score + "</td><td>" + escapeHtml(e.difficulty) + "</td></tr>";
+    }
+    return rows;
+  }
+
+  function updateBoardModeNote() {
+    var msg;
+    if (boardMode === "shared") {
+      msg = "다른 참가자와 함께 보는 공유 순위표예요. 등록하려면 이 아티팩트의 편집 권한이 필요할 수 있어요.";
+    } else if (boardMode === "jsonbin") {
+      msg = "온라인 순위표예요 — 같은 코드를 쓰면 어느 기기에서든 함께 볼 수 있어요.";
+    } else {
+      msg = "이 브라우저에만 저장되는 로컬 기록이에요.";
+    }
+    boardModeNote.textContent = msg;
+  }
+
+  async function refreshBoardView(codeRaw) {
+    var code = sanitizeCode(codeRaw);
+    var key = code || "ALL";
+    boardTitle.textContent = code ? ("코드 \"" + code + "\" 순위") : "명예의 전당";
+
+    if (boardMode === "jsonbin") {
+      boardTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--ink-soft);padding:16px 0;">불러오는 중...</td></tr>';
+      try {
+        boardData = await jsonbinRead();
+      } catch (e) {
+        boardModeNote.textContent = "온라인 순위표를 불러오지 못했어요. 인터넷 연결을 확인해주세요.";
+      }
+    }
+
+    boardTbody.innerHTML = boardTbodyHtml(boardData[key] || []);
+    updateBoardModeNote();
+  }
+
+  function hideAllOverlays() {
+    overlayStart.hidden = true;
+    overlayPause.hidden = true;
+    overlayClear.hidden = true;
+    overlayOver.hidden = true;
+    overlayBoard.hidden = true;
+    overlayHelp.hidden = true;
+  }
+
+  function showOverlayForState(s) {
+    if (s === "start") overlayStart.hidden = false;
+    else if (s === "paused") overlayPause.hidden = false;
+    else if (s === "clear") overlayClear.hidden = false;
+    else if (s === "over") overlayOver.hidden = false;
+  }
+
+  function openBoard(codeRaw) {
+    boardPrevState = state;
+    hideAllOverlays();
+    state = "board";
+    overlayBoard.hidden = false;
+    boardCodeInput.value = codeRaw || "";
+    refreshBoardView(codeRaw || "");
+  }
+
+  function closeBoard() {
+    hideAllOverlays();
+    state = boardPrevState;
+    showOverlayForState(state);
+  }
+
+  var helpPrevState = "start";
+  function openHelp() {
+    helpPrevState = state;
+    hideAllOverlays();
+    state = "help";
+    overlayHelp.hidden = false;
+  }
+  function closeHelp() {
+    hideAllOverlays();
+    state = helpPrevState;
+    showOverlayForState(state);
+  }
+
+  btnBoard.addEventListener("click", function () { openBoard(getCurrentCode()); });
+  btnBoardFromStart.addEventListener("click", function () { openBoard(getCurrentCode()); });
+  btnBoardClose.addEventListener("click", closeBoard);
+  btnBoardLookup.addEventListener("click", function () { refreshBoardView(boardCodeInput.value); });
+  boardCodeInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") refreshBoardView(boardCodeInput.value);
+  });
+  btnHelp.addEventListener("click", openHelp);
+  btnHelpFromStart.addEventListener("click", openHelp);
+  btnHelpClose.addEventListener("click", closeHelp);
+
+  // ---------- full-document template for shared publish ----------
+  function fullDocumentHtml(data) {
+    var styleText = document.querySelector("style").textContent;
+    var dataScript = "window.__BOARD_DATA__ = " + JSON.stringify(data) + ";";
+    return "<!doctype html>\n" +
+      "<html lang=\"ko\">\n<head>\n<meta charset=\"utf-8\">\n" +
+      "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
+      "<title>벽돌 깨기</title>\n" +
+      "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n" +
+      "<link href=\"https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700;900&family=Space+Mono:wght@400;700&display=swap\" rel=\"stylesheet\">\n" +
+      "<style>" + styleText + "</style>\n" +
+      "</head>\n<body>\n" +
+      "<div id=\"app\"></div>\n" +
+      "<script id=\"init-data\">" + dataScript + "<" + "/script>\n" +
+      "<script>" + LOGIC_SCRIPT_SOURCE + "<" + "/script>\n" +
+      "</body>\n</html>";
+  }
+
+  async function submitScore() {
+    var name = (nameInput.value || "").trim().slice(0, 10) || "익명";
+    var code = sanitizeCode(codeInput.value);
+    var room = code || "ALL";
+
+    try { localStorage.setItem("bbPlayerName", name); } catch (e) { /* ignore */ }
+    try { localStorage.setItem("bbLastCode", code); } catch (e) { /* ignore */ }
+
+    var entry = { name: name, score: lastFinalScore, difficulty: diffLabel(difficultyLives), level: level, ts: Date.now() };
+
+    btnSubmitScore.disabled = true;
+    btnSubmitScore.textContent = "등록 중...";
+
+    if (boardMode === "shared" && artifactCap) {
+      var next = JSON.parse(JSON.stringify(boardData));
+      if (!next[room]) next[room] = [];
+      next[room].push(entry);
+      next[room].sort(function (a, b) { return b.score - a.score; });
+      next[room] = next[room].slice(0, BOARD_MAX);
+      try {
+        sessionStorage.setItem("bbToast", "점수가 명예의 전당에 등록됐어요!");
+        sessionStorage.setItem("bbOpenBoard", room);
+      } catch (e) { /* ignore */ }
+      try {
+        await artifactCap.publish(fullDocumentHtml(next));
+        // success: the shell reloads this view to the new version automatically
+      } catch (err) {
+        var code2 = err && err.code;
+        if (code2 === "not_writer" || code2 === "not_granted") {
+          registerNote.textContent = "이 순위표는 읽기 전용이에요. 등록하려면 이 아티팩트의 편집자로 초대되어야 해요.";
+        } else if (code2 === "conflict") {
+          registerNote.textContent = "다른 참가자가 방금 등록했어요. 최신 순위를 불러오는 중...";
+        } else {
+          registerNote.textContent = "등록에 실패했어요. 잠시 후 다시 시도해주세요.";
+        }
+        btnSubmitScore.disabled = false;
+        btnSubmitScore.textContent = "등록하기";
+      }
+    } else if (boardMode === "jsonbin") {
+      try {
+        var latest = await jsonbinRead(); // 등록 직전에 최신 데이터를 다시 읽어와 충돌 가능성을 줄여요
+        if (!latest[room]) latest[room] = [];
+        latest[room].push(entry);
+        latest[room].sort(function (a, b) { return b.score - a.score; });
+        latest[room] = latest[room].slice(0, BOARD_MAX);
+        await jsonbinWrite(latest);
+        boardData = latest;
+        registerNote.textContent = "온라인 명예의 전당에 등록됐어요!";
+        showToast("온라인 순위표에 등록됐어요!");
+        openBoard(code);
+      } catch (err) {
+        registerNote.textContent = "등록에 실패했어요. 인터넷 연결을 확인하고 잠시 후 다시 시도해주세요.";
+      }
+      btnSubmitScore.disabled = false;
+      btnSubmitScore.textContent = "등록하기";
+    } else {
+      if (!boardData[room]) boardData[room] = [];
+      boardData[room].push(entry);
+      boardData[room].sort(function (a, b) { return b.score - a.score; });
+      boardData[room] = boardData[room].slice(0, BOARD_MAX);
+      try { localStorage.setItem("brickBreakerLocalBoard", JSON.stringify(boardData)); } catch (e) { /* ignore */ }
+      registerNote.textContent = "이 브라우저에 저장됐어요.";
+      btnSubmitScore.disabled = false;
+      btnSubmitScore.textContent = "등록하기";
+      showToast("점수가 로컬 명예의 전당에 등록됐어요!");
+      openBoard(code);
+    }
+  }
+
+  btnSubmitScore.addEventListener("click", function () { submitScore(); });
+
+  // ---------- input ----------
+  function canvasX(clientX) {
+    var rect = canvas.getBoundingClientRect();
+    return (clientX - rect.left) * (W / rect.width);
+  }
+
+  canvas.addEventListener("mousemove", function (e) {
+    if (state !== "playing") return;
+    paddle.x = canvasX(e.clientX) - paddle.w / 2;
+    clampPaddle();
+  });
+
+  canvas.addEventListener("mousedown", launch);
+
+  canvas.addEventListener("touchmove", function (e) {
+    if (state !== "playing") return;
+    e.preventDefault();
+    var t = e.touches[0];
+    paddle.x = canvasX(t.clientX) - paddle.w / 2;
+    clampPaddle();
+  }, { passive: false });
+
+  canvas.addEventListener("touchstart", function (e) {
+    if (state === "playing") { e.preventDefault(); launch(); }
+  }, { passive: false });
+
+  window.addEventListener("keydown", function (e) {
+    if (e.key === " " || e.code === "Space") {
+      e.preventDefault();
+      if (state === "playing") launch();
+    }
+    if (e.key === "p" || e.key === "P") togglePause();
+  });
+
+  function togglePause() {
+    if (state === "playing") {
+      state = "paused";
+      overlayPause.hidden = false;
+    } else if (state === "paused") {
+      state = "playing";
+      overlayPause.hidden = true;
+    }
+  }
+
+  document.getElementById("btnStart").addEventListener("click", function () {
+    overlayStart.hidden = true;
+    newGame();
+    state = "playing";
+  });
+
+  document.getElementById("btnResume").addEventListener("click", function () {
+    overlayPause.hidden = true;
+    state = "playing";
+  });
+
+  document.getElementById("btnNext").addEventListener("click", function () {
+    overlayClear.hidden = true;
+    nextLevel();
+    state = "playing";
+  });
+
+  document.getElementById("btnRestart").addEventListener("click", function () {
+    overlayOver.hidden = true;
+    newGame();
+    state = "playing";
+  });
+
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", draw);
+  }
+
+  // ---------- capability init ----------
+  (async function initCapability() {
+    try {
+      if (window.claude && typeof window.claude.use === "function") {
+        artifactCap = await window.claude.use("artifact");
+      }
+    } catch (e) { artifactCap = null; }
+
+    if (artifactCap) {
+      boardMode = "shared";
+    } else if (jsonbinConfigured()) {
+      // 온라인 순위표(jsonbin.io)가 설정돼 있으면, claude.ai 밖 어떤 도메인에서 열어도
+      // 이 모드로 동작해요. 실제 데이터는 명예의 전당을 열 때 refreshBoardView()가 불러옵니다.
+      boardMode = "jsonbin";
+    } else {
+      boardMode = "local";
+      try {
+        var savedLocal = localStorage.getItem("brickBreakerLocalBoard");
+        if (savedLocal) {
+          boardData = JSON.parse(savedLocal);
+        } else if (boardData && Object.keys(boardData).length) {
+          // no local history yet, but this page carries an embedded snapshot (e.g. a downloaded
+          // copy of a shared board) — seed local storage from it instead of discarding it
+          localStorage.setItem("brickBreakerLocalBoard", JSON.stringify(boardData));
+        }
+      } catch (e) { /* keep whatever boardData already holds */ }
+    }
+    updateBoardModeNote();
+
+    try {
+      var toastMsg = sessionStorage.getItem("bbToast");
+      if (toastMsg) {
+        sessionStorage.removeItem("bbToast");
+        showToast(toastMsg);
+        var openRoom = sessionStorage.getItem("bbOpenBoard") || "";
+        sessionStorage.removeItem("bbOpenBoard");
+        openBoard(openRoom === "ALL" ? "" : openRoom);
+      }
+    } catch (e) { /* ignore */ }
+  })();
+
+  // ---------- main loop ----------
+  function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  resetPaddle();
+  buildBricks();
+  resetBallOnPaddle();
+  updateHud();
+  draw();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
