@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>온라인 명예의 전당 설정</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --clay: #b8472e;
+    --clay-deep: #7a2e1c;
+    --ground: #efe6d3;
+    --surface: #fbf6ea;
+    --ink: #241f1b;
+    --ink-soft: #6b5f52;
+    --good: #4f7d4a;
+    --bad: #a5401f;
+    --line: rgba(36, 31, 27, 0.14);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --clay: #e2683f; --clay-deep: #ffa477; --ground: #1c1713; --surface: #26201b;
+      --ink: #f3ead9; --ink-soft: #b8a996; --good: #7fbf75; --bad: #ff8a65;
+      --line: rgba(243, 234, 217, 0.14);
+    }
+  }
+  :root[data-theme="dark"] {
+    --clay: #e2683f; --clay-deep: #ffa477; --ground: #1c1713; --surface: #26201b;
+    --ink: #f3ead9; --ink-soft: #b8a996; --good: #7fbf75; --bad: #ff8a65;
+    --line: rgba(243, 234, 217, 0.14);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--ground); color: var(--ink);
+    font-family: "Roboto Slab", Georgia, "Noto Serif KR", serif;
+    display: flex; justify-content: center; padding: 32px 16px;
+  }
+  .card {
+    width: 100%; max-width: 560px; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 16px; padding: 26px;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; color: var(--clay-deep); }
+  .sub { font-family: "Space Mono", monospace; font-size: 12px; color: var(--ink-soft); margin: 0 0 20px; }
+  ol { padding-left: 1.2em; font-size: 14px; line-height: 1.8; }
+  ol li { margin-bottom: 4px; }
+  a { color: var(--clay); }
+  label { display: block; font-family: "Space Mono", monospace; font-size: 12px; color: var(--ink-soft); margin: 18px 0 6px; }
+  input[type="text"] {
+    width: 100%; font-family: "Space Mono", monospace; font-size: 13px; padding: 10px 12px;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--ground); color: var(--ink);
+  }
+  button {
+    margin-top: 16px; font-family: "Roboto Slab", serif; font-weight: 700; font-size: 14px;
+    color: var(--surface); background: var(--clay); border: none; border-radius: 9px;
+    padding: 11px 22px; cursor: pointer; box-shadow: 0 3px 0 var(--clay-deep);
+  }
+  button:disabled { opacity: .6; cursor: default; }
+  .result { margin-top: 18px; padding: 14px; border-radius: 10px; font-size: 13px; line-height: 1.6; display: none; }
+  .result.ok { background: color-mix(in srgb, var(--good) 14%, transparent); border: 1px solid var(--good); }
+  .result.err { background: color-mix(in srgb, var(--bad) 14%, transparent); border: 1px solid var(--bad); }
+  .result.show { display: block; }
+  textarea {
+    width: 100%; margin-top: 10px; font-family: "Space Mono", monospace; font-size: 12.5px;
+    padding: 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--ground); color: var(--ink);
+    resize: vertical; min-height: 70px;
+  }
+  .copybtn {
+    margin-top: 8px; background: transparent; color: var(--ink-soft); border: 1px solid var(--line);
+    box-shadow: none; font-size: 12px; padding: 7px 14px;
+  }
+  .note { font-size: 11.5px; color: var(--ink-soft); margin-top: 18px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>온라인 명예의 전당 설정</h1>
+  <p class="sub">벽돌 깨기 게임을 claude.ai가 아닌 다른 도메인에 올렸을 때, 진짜 온라인 순위표를 쓰기 위한 1회용 설정 도구예요.</p>
+
+  <ol>
+    <li><a href="https://jsonbin.io" target="_blank" rel="noopener">jsonbin.io</a>에서 무료로 가입하세요.</li>
+    <li>로그인 후 대시보드의 <strong>API Keys</strong> 메뉴에서 <strong>Master Key</strong>를 만들고 복사하세요.</li>
+    <li>아래 칸에 붙여넣고 버튼을 누르면, 순위표를 저장할 공간(Bin)을 자동으로 만들어드려요.</li>
+    <li>결과로 나오는 두 줄을 복사해서, 게임 HTML 파일 안의 <code>JSONBIN_ID</code> / <code>JSONBIN_KEY</code> 부분에 붙여넣고 다시 업로드하세요.</li>
+  </ol>
+
+  <label for="keyInput">Master Key</label>
+  <input type="text" id="keyInput" placeholder="여기에 Master Key를 붙여넣으세요" autocomplete="off">
+  <div>
+    <button id="createBtn" type="button">온라인 순위표 만들기</button>
+  </div>
+
+  <div class="result" id="result"></div>
+
+  <p class="note">
+    이 키는 게임 파일 안에 그대로 저장되어 누구나 볼 수 있게 돼요. 그래서 마음만 먹으면 다른 사람이 순위 데이터를 조작할 수도 있어요 — 친구들끼리 가볍게 쓰는 용도로만 추천드려요.
+    무료 요금제는 한 달에 10,000번의 요청을 제공합니다.
+  </p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var keyInput = document.getElementById("keyInput");
+  var btn = document.getElementById("createBtn");
+  var result = document.getElementById("result");
+
+  function showResult(cls, html) {
+    result.className = "result show " + cls;
+    result.innerHTML = html;
+  }
+
+  btn.addEventListener("click", async function () {
+    var key = (keyInput.value || "").trim();
+    if (!key) {
+      showResult("err", "Master Key를 먼저 입력해주세요.");
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = "만드는 중...";
+    try {
+      var res = await fetch("https://api.jsonbin.io/v3/b", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Master-Key": key,
+          "X-Bin-Name": "brick-breaker-board",
+          "X-Bin-Private": "true"
+        },
+        body: JSON.stringify({})
+      });
+      var data = await res.json();
+      if (!res.ok) {
+        throw new Error((data && data.message) || ("요청 실패 (상태 코드 " + res.status + ")"));
+      }
+      var binId = data && data.metadata && data.metadata.id;
+      if (!binId) throw new Error("응답에서 Bin ID를 찾지 못했어요.");
+
+      var snippet = "  var JSONBIN_ID = \"" + binId + "\";\n  var JSONBIN_KEY = \"" + key + "\";";
+      showResult("ok",
+        "온라인 순위표가 만들어졌어요! 아래 두 줄을 복사해서 게임 파일의 " +
+        "<code>JSONBIN_ID</code> / <code>JSONBIN_KEY</code> 부분에 붙여넣으세요." +
+        "<textarea id=\"snippet\" readonly></textarea>" +
+        "<button class=\"copybtn\" id=\"copyBtn\" type=\"button\">복사하기</button>"
+      );
+      document.getElementById("snippet").value = snippet;
+      document.getElementById("copyBtn").addEventListener("click", function () {
+        var ta = document.getElementById("snippet");
+        ta.select();
+        try {
+          navigator.clipboard.writeText(ta.value).then(function () {
+            document.getElementById("copyBtn").textContent = "복사됨!";
+          }).catch(function () {
+            document.execCommand("copy");
+            document.getElementById("copyBtn").textContent = "복사됨!";
+          });
+        } catch (e) {
+          document.execCommand("copy");
+          document.getElementById("copyBtn").textContent = "복사됨!";
+        }
+      });
+    } catch (err) {
+      showResult("err", "만들기에 실패했어요: " + err.message + "<br>Master Key가 올바른지 다시 확인해주세요.");
+    }
+    btn.disabled = false;
+    btn.textContent = "온라인 순위표 만들기";
+  });
+})();
+</script>
+</body>
+</html>
